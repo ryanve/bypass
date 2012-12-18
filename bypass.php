@@ -13,12 +13,12 @@ namespace bypass;
 
 function root ( $path = null ) {
     static $root; # php.net/manual/en/language.variables.scope.php
-    if ( ! $root || ! \is_dir( $root ) ) {
-        $root = \dirname( \get_theme_root() ) . '/entries/';   #wp
-        $root = \apply_filters( '@bypass_root', $root );       #wp
-        $root = $root ? \trailingslashit( $root ) : null;      #wp 
+    if ( ! $root ) {
+        $root = \dirname( \get_theme_root() ) . '/entries/';     #wp
+        $root = \apply_filters( '@bypass_root', $root );         #wp
+        $root = \is_dir($root) ? \trailingslashit($root) : null; #wp 
     }
-    return null === $path ? $root : \path_join( $root, $path ); #wp
+    return null === $path ? $root : \path_join( $root, $path );  #wp
 }
 
 \add_filter('the_content', function ($text = null) {
