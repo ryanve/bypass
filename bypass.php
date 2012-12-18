@@ -30,10 +30,7 @@ function root ( $path = null ) {
         $path = root( \trailingslashit( $path ) . \ltrim( $file, '/' ) );
         
         if ( \is_readable($path) && ! \is_dir($path) ) {
-
-            $html = \file_get_contents($path);
-            $html and $text = $html; #wp
-            
+        
             # remove processing (wp-includes/default-filters.php)
             # keep do_shortcode (wp-includes/shortcodes.php)
             \remove_filter( 'the_content', 'wptexturize'        );
@@ -41,6 +38,10 @@ function root ( $path = null ) {
             \remove_filter( 'the_content', 'convert_chars'      );
             \remove_filter( 'the_content', 'wpautop'            );
             \remove_filter( 'the_content', 'shortcode_unautop'  );
+
+            # read the file
+            $html = \file_get_contents($path);
+            $html and $text = $html; #wp
         }
     }
 
@@ -57,10 +58,7 @@ function root ( $path = null ) {
         $path = root( \trailingslashit( $path ) . \ltrim( $file, '/' ) );
         
         if ( \is_readable($path) && ! \is_dir($path) ) {
-
-            $html = \file_get_contents($path);
-            $html and $text = $html; #wp
-            
+        
             # remove processing (wp-includes/default-filters.php)
             # keep do_shortcode (wp-includes/shortcodes.php)
             \remove_filter( 'the_excerpt', 'wptexturize'        );
@@ -68,6 +66,10 @@ function root ( $path = null ) {
             \remove_filter( 'the_excerpt', 'convert_chars'      );
             \remove_filter( 'the_excerpt', 'wpautop'            );
             \remove_filter( 'the_excerpt', 'shortcode_unautop'  );
+
+            # read the file
+            $html = \file_get_contents($path);
+            $html and $text = $html; #wp
         }
     }
 
