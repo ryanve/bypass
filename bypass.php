@@ -41,7 +41,7 @@ function root ( $path = null ) {
 
             # read the file
             $html = \file_get_contents($path);
-            $html and $text = $html; #wp
+            $html and $text = $html;
         }
     }
 
@@ -69,7 +69,7 @@ function root ( $path = null ) {
 
             # read the file
             $html = \file_get_contents($path);
-            $html and $text = $html; #wp
+            $html and $text = $html;
         }
     }
 
