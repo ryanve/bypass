@@ -18,22 +18,22 @@ array_reduce(array('content', 'excerpt'), function($one, $mode) {
             return $text;
 
         $data['path'] = array_reduce(array(
-            apply_filters('@bypass_root', \dirname(\get_theme_root()) . '/entries')
-          , apply_filters('@bypass_path', \basename(\get_permalink()))
+            apply_filters('@bypass_root', dirname(get_theme_root()) . '/entries')
+          , apply_filters('@bypass_path', basename(get_permalink()))
           , apply_filters('@bypass_file', $data['mode'] . '.html', $data)
         ), function($path, $part) {
             return rtrim($path, '/\\') . '/' . ltrim($part, '/\\');
         }, '');
         
-        if (\is_file($data['path'])) {
+        if (is_file($data['path'])) {
             # Remove most wp-includes/default-filters.php
             # Keep do_shortcode for wp-includes/shortcodes.php
-            \remove_filter($data['hook'], 'wptexturize');
-            \remove_filter($data['hook'], 'convert_smilies');
-            \remove_filter($data['hook'], 'convert_chars');
-            \remove_filter($data['hook'], 'wpautop');
-            \remove_filter($data['hook'], 'shortcode_unautop');
-            $text = apply_filters('@bypass_html', \file_get_contents($data['path']), $data) ?: $text;
+            remove_filter($data['hook'], 'wptexturize');
+            remove_filter($data['hook'], 'convert_smilies');
+            remove_filter($data['hook'], 'convert_chars');
+            remove_filter($data['hook'], 'wpautop');
+            remove_filter($data['hook'], 'shortcode_unautop');
+            $text = apply_filters('@bypass_html', file_get_contents($data['path']), $data) ?: $text;
         }
 
         return $text;
