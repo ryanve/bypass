@@ -3,71 +3,52 @@
 Plugin Name:   bypass
 Plugin URI:    http://github.com/ryanve/bypass
 Description:   Enables you to write entry markup in files rather than in the WP editor.
-Version:       0.6.0-1
+Version:       0.6.0-2
 License:       MIT
 Author:        Ryan Van Etten
 Author URI:    http://github.com/ryanve
 */
-namespace bypass;
 
-function root($path = null) {
-    static $root;
-    if ( ! $root) {
-        $root = \dirname(\get_theme_root()) . '/entries/';
-        $root = \apply_filters('@bypass_root', $root);
-        $root = \is_dir($root) ? \trailingslashit($root) : null;
-    }
-    return null === $path ? $root : \path_join($root, $path);
-}
+array_reduce(array('content', 'excerpt'), function($one, $mode) {
+    $data = array('mode' => $mode, 'hook' => "the_$mode");
+    $one($data['hook'], function($text) use (&$data) {
 
-\add_filter('the_content', function($text = null) {
+        if (strlen(trim((string) $text)))
+            # abort if post has normal content
+            return $text;
 
-    if ('' === \trim((string) $text)) {
-        $path = \apply_filters('@bypass_path', \basename(\get_permalink()));
-        $file = \apply_filters('@bypass_file', 'content.php', 'the_content');
-        $path = root(\trailingslashit($path) . \ltrim($file, '/'));
+        $data['path'] = array_reduce(array(
+            apply_filters('@bypass_root', \dirname(\get_theme_root()) . '/entries')
+          , apply_filters('@bypass_path', \basename(\get_permalink()))
+          , apply_filters('@bypass_file', $data['mode'] . '.html', $data)
+        ), function($path, $part) {
+            return rtrim($path, '/\\') . '/' . ltrim($part, '/\\');
+        }, '');
         
-        if (\is_readable($path) && ! \is_dir($path)) {
-            # remove processing (wp-includes/default-filters.php)
-            # keep do_shortcode (wp-includes/shortcodes.php)
-            \remove_filter('the_content', 'wptexturize');
-            \remove_filter('the_content', 'convert_smilies');
-            \remove_filter('the_content', 'convert_chars');
-            \remove_filter('the_content', 'wpautop');
-            \remove_filter('the_content', 'shortcode_unautop');
-
-            # read the file
-            $html = \file_get_contents($path);
-            $html and $text = $html;
+        if (\is_file($data['path'])) {
+            # Remove most wp-includes/default-filters.php
+            # Keep do_shortcode for wp-includes/shortcodes.php
+            \remove_filter($data['hook'], 'wptexturize');
+            \remove_filter($data['hook'], 'convert_smilies');
+            \remove_filter($data['hook'], 'convert_chars');
+            \remove_filter($data['hook'], 'wpautop');
+            \remove_filter($data['hook'], 'shortcode_unautop');
+            $text = apply_filters('@bypass_html', \file_get_contents($data['path']), $data) ?: $text;
         }
-    }
 
-    return $text;
-}, 0); # use early priority to run before do_shortcode and other filters
+        return $text;
+    }, 0);
 
-\add_filter('the_excerpt', function($text = null) {
-
-    if ('' === \trim((string) $text)) {
-        $path = \apply_filters('@bypass_path', \basename(\get_permalink()));
-        $file = \apply_filters('@bypass_file', 'excerpt.php', 'the_excerpt');
-        $path = root(\trailingslashit($path) . \ltrim($file, '/'));
-        
-        if (\is_readable($path) && ! \is_dir($path)) {
-            # remove processing (wp-includes/default-filters.php)
-            # keep do_shortcode (wp-includes/shortcodes.php)
-            \remove_filter('the_excerpt', 'wptexturize');
-            \remove_filter('the_excerpt', 'convert_smilies');
-            \remove_filter('the_excerpt', 'convert_chars');
-            \remove_filter('the_excerpt', 'wpautop');
-            \remove_filter('the_excerpt', 'shortcode_unautop');
-
-            # read the file
-            $html = \file_get_contents($path);
-            $html and $text = $html;
-        }
-    }
-
-    return $text;
-}, 0); # use early priority to run before do_shortcode and other filters
+    return $one;
+}, function() {
+    $args = func_get_args();
+    $func = $args[1];
+    $args[1] = function() use ($func, $args) {
+        # Wrap the original func.
+        call_user_func_array('remove_filter', $args);
+        return call_user_func_array($func, func_get_args());
+    };
+    return call_user_func_array('add_filter', $args);
+});
 
 #end
