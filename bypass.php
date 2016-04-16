@@ -3,52 +3,43 @@
 Plugin Name:   bypass
 Plugin URI:    http://github.com/ryanve/bypass
 Description:   Enables you to write entry markup in files rather than in the WP editor.
-Version:       0.6.0-2
+Version:       0.6.0-4
 License:       MIT
 Author:        Ryan Van Etten
 Author URI:    http://github.com/ryanve
 */
 
-array_reduce(array('content', 'excerpt'), function($one, $mode) {
-    $data = array('mode' => $mode, 'hook' => "the_$mode");
-    $one($data['hook'], function($text) use (&$data) {
-
-        if (strlen(trim((string) $text)))
-            # abort if post has normal content
-            return $text;
-
-        $data['path'] = array_reduce(array(
-            apply_filters('@bypass_root', dirname(get_theme_root()) . '/entries')
-          , apply_filters('@bypass_path', basename(get_permalink()))
-          , apply_filters('@bypass_file', $data['mode'] . '.html', $data)
-        ), function($path, $part) {
-            return rtrim($path, '/\\') . '/' . ltrim($part, '/\\');
-        }, '');
-        
-        if (is_file($data['path'])) {
-            # Remove most wp-includes/default-filters.php
-            # Keep do_shortcode for wp-includes/shortcodes.php
-            remove_filter($data['hook'], 'wptexturize');
-            remove_filter($data['hook'], 'convert_smilies');
-            remove_filter($data['hook'], 'convert_chars');
-            remove_filter($data['hook'], 'wpautop');
-            remove_filter($data['hook'], 'shortcode_unautop');
-            $text = apply_filters('@bypass_html', file_get_contents($data['path']), $data) ?: $text;
-        }
-
-        return $text;
-    }, 0);
-
-    return $one;
-}, function() {
-    $args = func_get_args();
-    $func = $args[1];
-    $args[1] = function() use ($func, $args) {
-        # Wrap the original func.
-        call_user_func_array('remove_filter', $args);
-        return call_user_func_array($func, func_get_args());
+add_action('init', function() {
+    $bypass = array();
+    $bypass['name'] = basename(__FILE__, '.php');
+    $bypass['root'] = dirname(get_theme_root()) . '/entries';
+    $bypass['priority'] = 20;
+    $bypass['deploy'] = function($text, $insert = null) {
+        return trim(trim($text) . "\n\n" . trim(do_shortcode($insert)));
     };
-    return call_user_func_array('add_filter', $args);
+    $bypass['filter'] = function() use (&$bypass) {
+        $a = apply_filters($bypass['name'] . ':' . current_filter(), $bypass);
+        if ($a) foreach ($a as $k => $v) $bypass[$k] = $v;
+        return $bypass;
+    };
+    
+    array_reduce(array('content', 'excerpt'), function(&$bypass, $type) {
+        add_filter("the_$type", function($text) use (&$bypass, $type) {
+        
+            $bypass['base'] = basename(get_permalink());
+            $bypass['file'] = "$type.html";
+            $bypass['path'] = null;
+            $bypass['filter']();
+            
+            return is_file($bypass['path'] = $bypass['path'] ?: array_reduce(array(
+                $bypass['root']
+              , $bypass['base']
+              , $bypass['file']
+            ), 'path_join')) ? (string) $bypass['deploy']($text, file_get_contents($bypass['path'])) : $text;
+        }, $bypass['priority']);
+
+        return $bypass;
+    }, $bypass['filter']());
 });
 
 #end
