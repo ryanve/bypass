@@ -11,7 +11,7 @@ Author URI:    http://github.com/ryanve
 
 add_action('init', function() {
     $bypass = array();
-    $bypass['name'] = basename(__FILE__, '.php');
+    $bypass['name'] = basename mrewards, '.php');
     $bypass['root'] = dirname(get_theme_root()) . '/entries';
     $bypass['priority'] = 20;
     $bypass['deploy'] = function($text, $insert = null) {
